@@ -7,7 +7,7 @@ name = "ctpipeline"
 version = "0.1.0"
 description = "Modular AI pipeline for CT DICOM studies (MVP, not for clinical use)"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
     "pydicom==3.0.2",
     "highdicom==0.28.2",
@@ -49,7 +49,7 @@ addopts = "-q"
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py312"
 src = ["src", "tests"]
 
 [tool.ruff.lint]
@@ -60,7 +60,7 @@ ignore = ["S101"]
 "tests/**" = ["S"]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 packages = ["ctpipeline"]
 mypy_path = "src"
 ignore_missing_imports = true
