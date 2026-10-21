@@ -1,0 +1,42 @@
+# Local development stack: API + CPU worker + PostgreSQL.
+# Object storage is a shared volume (an S3-compatible store is a later step).
+services:
+  postgres:
+    image: postgres:16.6-alpine
+    environment:
+      POSTGRES_USER: ctp
+      POSTGRES_PASSWORD: ctp-dev-only
+      POSTGRES_DB: ctpipeline
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ctp -d ctpipeline"]
+      interval: 5s
+      retries: 10
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  api:
+    build: .
+    environment: &env
+      CTP_DATABASE_URL: postgresql+psycopg://ctp:ctp-dev-only@postgres:5432/ctpipeline
+      CTP_STORAGE_ROOT: /data/objects
+    ports:
+      - "8000:8000"
+    volumes:
+      - objects:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  worker:
+    build: .
+    command: ["ctpipeline-worker"]
+    environment: *env
+    volumes:
+      - objects:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  objects:

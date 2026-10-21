@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -e ".[dev]"
+      - name: Ruff
+        run: ruff check src tests scripts && ruff format --check src tests scripts
+      - name: Mypy
+        run: mypy
+      - name: Pytest
+        run: python -m pytest
+
+  dicom-conformance:
+    # Independent IOD validation of generated SEG/SR with dicom-validator
+    # (downloads the DICOM standard). Informational until findings are triaged.
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e . "dicom-validator==0.9.0"
+      - run: python scripts/generate_sample_outputs.py sample-outputs
+      - run: validate_iods sample-outputs/seg.dcm sample-outputs/sr.dcm
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build --build-arg CODE_REVISION=${{ github.sha }} -t ctpipeline:ci .

@@ -1,0 +1,10 @@
+# Shared object storage for inputs/outputs until an S3-compatible backend is added.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ctpipeline-objects
+spec:
+  accessModes: ["ReadWriteMany"]
+  resources:
+    requests:
+      storage: 100Gi

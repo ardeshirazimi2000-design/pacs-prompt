@@ -1,0 +1,26 @@
+# Pipeline profile for the DummyThresholdAdapter.
+# SYNTHETIC: for infrastructure testing only, outputs have no medical meaning.
+model:
+  name: dummy-threshold
+  artifact: null          # path to weights; none for the dummy model
+  params:
+    threshold: 0.9        # on the 0..1 windowed intensity
+
+preprocessing:
+  version: "dummy-pre-1.0.0"
+  window:
+    center: 40
+    width: 400
+  normalization: window_0_1
+  resample: null          # e.g. {target_spacing: [1.0, 1.0, 2.5], order: 1}
+
+postprocessing:
+  version: "dummy-post-1.0.0"
+  min_component_voxels: 10
+  connectivity: 1
+  fail_on_empty: false
+
+overlay:
+  window_center: 40
+  window_width: 400
+  alpha: 0.45

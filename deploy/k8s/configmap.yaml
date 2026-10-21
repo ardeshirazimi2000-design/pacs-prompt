@@ -1,0 +1,16 @@
+# Non-secret settings only. Credentials go in the "ctpipeline-secrets" Secret,
+# created out of band (Secret Manager / sealed-secrets), never committed:
+#   kubectl -n ctpipeline create secret generic ctpipeline-secrets \
+#     --from-literal=CTP_DATABASE_URL=postgresql+psycopg://... \
+#     --from-literal=CTP_API_KEY=...
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ctpipeline-config
+data:
+  CTP_STORAGE_ROOT: /data/objects
+  CTP_CONFIGS_DIR: /app/configs
+  CTP_LOG_LEVEL: INFO
+  CTP_MAX_ATTEMPTS: "3"
+  CTP_RETRY_BACKOFF_SECONDS: "10"
+  CTP_STALE_JOB_SECONDS: "900"
