@@ -8,10 +8,15 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     CTP_STORAGE_ROOT=/data/objects \
     CTP_DATABASE_URL=sqlite:////data/ctpipeline.db
 
+# Optional PyPI mirror for networks where pypi.org is unreachable.
+ARG PIP_INDEX_URL=https://pypi.org/simple
+ARG PIP_TRUSTED_HOST=
+
 WORKDIR /app
 COPY pyproject.toml README.md ./
 COPY src ./src
-RUN pip install ".[postgres]"
+RUN PIP_INDEX_URL="${PIP_INDEX_URL}" PIP_TRUSTED_HOST="${PIP_TRUSTED_HOST}" \
+    PIP_DEFAULT_TIMEOUT=120 pip install --retries 10 ".[postgres]"
 COPY configs ./configs
 
 ARG CODE_REVISION=unknown

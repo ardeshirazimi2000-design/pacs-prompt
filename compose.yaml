@@ -6,6 +6,7 @@
 #   CTP_BIND         host address to bind (default 0.0.0.0; 127.0.0.1 behind a reverse proxy)
 #   CTP_DB_PASSWORD  PostgreSQL password (change it!)
 #   CTP_API_KEY      if set, /v1 endpoints require the X-API-Key header
+#   PIP_INDEX_URL    PyPI mirror used while building the image (optional)
 #
 # The fixed project name keeps containers, network and volumes prefixed with
 # "ctpipeline" so they never collide with other Compose stacks on the host.
@@ -29,7 +30,14 @@ services:
       - pgdata:/var/lib/postgresql/data
 
   api:
-    build: .
+    build:
+      context: .
+      # Host networking during the build uses the server's own DNS; this avoids
+      # "Temporary failure in name resolution" when Docker's DNS is misconfigured.
+      network: host
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
+        PIP_TRUSTED_HOST: ${PIP_TRUSTED_HOST:-}
     image: ctpipeline:local
     restart: unless-stopped
     environment: &env
