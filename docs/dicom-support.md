@@ -33,10 +33,19 @@ Identical duplicate files are dropped with a warning; two different files with t
   per-frame `ImagePositionPatient` against the source slices, mask/frame alignment, empty
   and multi-segment masks, and SR → SEG references and values.
 * The CI job `dicom-conformance` runs the independent validator
-  [dicom-validator](https://github.com/pydicom/dicom-validator) on generated outputs. It
-  is **informational** (`continue-on-error`) until its findings have been reviewed; it
-  could not be run while developing because the build sandbox had no access to the DICOM
-  standard download.
+  [dicom-validator](https://github.com/pydicom/dicom-validator) 0.9.0 (DICOM edition 2026d)
+  on generated outputs. It is **informational** (`continue-on-error`). First run on PR #1
+  reported only "unexpected tag" errors, which have been reviewed as validator limitations
+  rather than defects:
+  * SEG: every functional-group macro inside Shared/Per-frame Functional Groups (Plane
+    Position, Plane Orientation, Pixel Measures, Derivation Image, Frame Content, Segment
+    Identification) is flagged. These macros are *required* by the Segmentation IOD
+    (PS3.3 A.51.5); the validator does not resolve the functional group macro tables.
+  * SR: `Referenced Segment Number (0062,000B)` inside the IMAGE content item's Referenced
+    SOP Sequence is flagged; it is part of the Image SOP Instance Reference Macro used by
+    TID 1411 to reference a segment.
+  No missing-attribute or wrong-value errors were reported. A second validator
+  (dciodvfy from dicom3tools) should still be run before any deployment.
 * Opening outputs in the target viewer (e.g. OHIF, 3D Slicer) has **not** been tested yet.
 
 Do not consider SEG/SR conformant for any target system until both checks pass there.
