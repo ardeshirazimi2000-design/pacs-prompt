@@ -29,9 +29,10 @@ jobs:
 
   dicom-conformance:
     # Independent IOD validation of generated SEG/SR with dicom-validator
-    # (downloads the DICOM standard). Informational until findings are triaged.
+    # (downloads the DICOM standard). Informational: findings are reported as a
+    # warning annotation, not a red check, because dicom-validator 0.9.0 flags the
+    # functional-group macros SEG requires (see docs/dicom-support.md).
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -39,7 +40,10 @@ jobs:
           python-version: "3.12"
       - run: pip install -e . "dicom-validator==0.9.0"
       - run: python scripts/generate_sample_outputs.py sample-outputs
-      - run: validate_iods sample-outputs/seg.dcm sample-outputs/sr.dcm
+      - name: Validate IODs (informational)
+        run: |
+          validate_iods sample-outputs/seg.dcm sample-outputs/sr.dcm \
+            || echo "::warning::dicom-validator reported findings; see the log and docs/dicom-support.md"
 
   docker:
     runs-on: ubuntu-latest

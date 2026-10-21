@@ -34,7 +34,7 @@ Identical duplicate files are dropped with a warning; two different files with t
   and multi-segment masks, and SR → SEG references and values.
 * The CI job `dicom-conformance` runs the independent validator
   [dicom-validator](https://github.com/pydicom/dicom-validator) 0.9.0 (DICOM edition 2026d)
-  on generated outputs. It is **informational** (`continue-on-error`). First run on PR #1
+  on generated outputs. It is **informational** (findings become a warning annotation). First run on PR #1
   reported only "unexpected tag" errors, which have been reviewed as validator limitations
   rather than defects:
   * SEG: every functional-group macro inside Shared/Per-frame Functional Groups (Plane
