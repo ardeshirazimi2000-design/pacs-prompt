@@ -50,3 +50,15 @@ def test_empty_api_key_disables_auth() -> None:
 
     assert Settings(api_key="").api_key is None
     assert Settings(api_key="k").api_key == "k"
+
+
+def test_database_url_built_from_parts_escapes_password() -> None:
+    from sqlalchemy.engine import make_url
+
+    from ctpipeline.common.config import Settings
+
+    s = Settings(db_host="postgres", db_password="p@ss:w/rd#1")
+    url = make_url(s.database_url)
+    assert url.host == "postgres"
+    assert url.password == "p@ss:w/rd#1"
+    assert url.drivername == "postgresql+psycopg"

@@ -42,7 +42,8 @@ services:
     pull_policy: build
     restart: unless-stopped
     environment: &env
-      CTP_DATABASE_URL: postgresql+psycopg://ctp:${CTP_DB_PASSWORD:-ctp-dev-only}@postgres:5432/ctpipeline
+      CTP_DB_HOST: postgres
+      CTP_DB_PASSWORD: ${CTP_DB_PASSWORD:-ctp-dev-only}
       CTP_STORAGE_ROOT: /data/objects
       CTP_API_KEY: ${CTP_API_KEY:-}
     ports:

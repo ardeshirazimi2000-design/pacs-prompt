@@ -3,8 +3,9 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy.engine import URL
 
 
 class Settings(BaseSettings):
@@ -13,6 +14,14 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="CTP_", env_file=".env", extra="ignore")
 
     database_url: str = "sqlite:///./data/ctpipeline.db"
+    # When db_host is set, database_url is built from these parts (PostgreSQL).
+    # Passing the password separately avoids URL-escaping problems with
+    # characters such as "@", ":" or "/".
+    db_host: str | None = None
+    db_port: int = 5432
+    db_user: str = "ctp"
+    db_password: str = ""
+    db_name: str = "ctpipeline"
     storage_root: Path = Path("./data/objects")
     configs_dir: Path = Path("./configs")
     log_level: str = "INFO"
@@ -36,6 +45,19 @@ class Settings(BaseSettings):
     # Provenance
     code_revision: str = "unknown"
     container_digest: str = "unknown"
+
+    @model_validator(mode="after")
+    def _database_url_from_parts(self) -> Settings:
+        if self.db_host:
+            self.database_url = URL.create(
+                "postgresql+psycopg",
+                username=self.db_user,
+                password=self.db_password or None,
+                host=self.db_host,
+                port=self.db_port,
+                database=self.db_name,
+            ).render_as_string(hide_password=False)
+        return self
 
     @field_validator("api_key", mode="before")
     @classmethod
