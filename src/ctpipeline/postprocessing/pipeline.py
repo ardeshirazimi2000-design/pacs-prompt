@@ -112,7 +112,7 @@ def postprocess(
             comp = components == idx
             voxels = int(comp.sum())
             centroid = tuple(float(v) for v in ndimage.center_of_mass(comp))
-            centroid_mm = tuple(float(v) for v in reference.index_to_physical(centroid))
+            centroid_mm = tuple(float(v) for v in reference.index_to_physical(np.asarray(centroid)))
             findings.append(
                 Finding(
                     finding_id=f"L{cls.label}-C{idx}",

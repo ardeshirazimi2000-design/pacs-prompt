@@ -8,9 +8,9 @@ run the same job, and jobs survive restarts of any component.
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
-from sqlalchemy import and_, func, or_, select, update
+from sqlalchemy import CursorResult, and_, func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -151,16 +151,19 @@ class JobStore:
                 .limit(10)
             ).all()
             for job_id in candidates:
-                result = s.execute(
-                    update(Job)
-                    .where(and_(Job.id == job_id, Job.status == JobStatus.QUEUED.value))
-                    .values(
-                        status=JobStatus.PREPROCESSING.value,
-                        attempts=Job.attempts + 1,
-                        worker_id=worker_id,
-                        started_at=now,
-                        heartbeat_at=now,
-                    )
+                result = cast(
+                    CursorResult[Any],
+                    s.execute(
+                        update(Job)
+                        .where(and_(Job.id == job_id, Job.status == JobStatus.QUEUED.value))
+                        .values(
+                            status=JobStatus.PREPROCESSING.value,
+                            attempts=Job.attempts + 1,
+                            worker_id=worker_id,
+                            started_at=now,
+                            heartbeat_at=now,
+                        )
+                    ),
                 )
                 if result.rowcount == 1:
                     s.add(
