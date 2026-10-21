@@ -39,6 +39,7 @@ services:
         PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
         PIP_TRUSTED_HOST: ${PIP_TRUSTED_HOST:-}
     image: ctpipeline:local
+    pull_policy: build
     restart: unless-stopped
     environment: &env
       CTP_DATABASE_URL: postgresql+psycopg://ctp:${CTP_DB_PASSWORD:-ctp-dev-only}@postgres:5432/ctpipeline
@@ -53,7 +54,9 @@ services:
         condition: service_healthy
 
   worker:
+    # Reuses the image built for "api"; never try to pull it from Docker Hub.
     image: ctpipeline:local
+    pull_policy: never
     restart: unless-stopped
     command: ["ctpipeline-worker"]
     environment: *env
