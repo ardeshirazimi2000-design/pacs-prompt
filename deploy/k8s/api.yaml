@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ctpipeline-api
+  labels: {app: ctpipeline, component: api}
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: {maxUnavailable: 0, maxSurge: 1}
+  selector:
+    matchLabels: {app: ctpipeline, component: api}
+  template:
+    metadata:
+      labels: {app: ctpipeline, component: api}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: api
+          image: ctpipeline
+          ports: [{containerPort: 8000, name: http}]
+          envFrom:
+            - configMapRef: {name: ctpipeline-config}
+            - secretRef: {name: ctpipeline-secrets}
+          resources:
+            requests: {cpu: 250m, memory: 512Mi}
+            limits: {cpu: "2", memory: 4Gi}
+          readinessProbe:
+            httpGet: {path: /readyz, port: http}
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 20
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+          volumeMounts:
+            - {name: objects, mountPath: /data}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: objects
+          persistentVolumeClaim: {claimName: ctpipeline-objects}
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ctpipeline-api
+spec:
+  selector: {app: ctpipeline, component: api}
+  ports:
+    - {name: http, port: 80, targetPort: http}

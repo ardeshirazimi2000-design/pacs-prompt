@@ -1,0 +1,50 @@
+# GPU worker: one job at a time per GPU (one pod per GPU).
+# Requires the NVIDIA device plugin on the cluster. Scaled to 0 until a real
+# GPU model adapter exists (the dummy adapter is CPU-only).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ctpipeline-worker-gpu
+  labels: {app: ctpipeline, component: worker-gpu}
+spec:
+  replicas: 0
+  selector:
+    matchLabels: {app: ctpipeline, component: worker-gpu}
+  template:
+    metadata:
+      labels: {app: ctpipeline, component: worker-gpu}
+    spec:
+      terminationGracePeriodSeconds: 900
+      nodeSelector:
+        nvidia.com/gpu.present: "true"
+      tolerations:
+        - {key: nvidia.com/gpu, operator: Exists, effect: NoSchedule}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: worker
+          image: ctpipeline
+          command: ["ctpipeline-worker"]
+          env:
+            - {name: CTP_DEVICE, value: "cuda:0"}
+          envFrom:
+            - configMapRef: {name: ctpipeline-config}
+            - secretRef: {name: ctpipeline-secrets}
+          resources:
+            requests: {cpu: "2", memory: 16Gi, nvidia.com/gpu: 1}
+            limits: {cpu: "8", memory: 32Gi, nvidia.com/gpu: 1}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+          volumeMounts:
+            - {name: objects, mountPath: /data}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: objects
+          persistentVolumeClaim: {claimName: ctpipeline-objects}
+        - name: tmp
+          emptyDir: {}

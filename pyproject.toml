@@ -1,0 +1,68 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ctpipeline"
+version = "0.1.0"
+description = "Modular AI pipeline for CT DICOM studies (MVP, not for clinical use)"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pydicom==3.0.2",
+    "highdicom==0.28.2",
+    "numpy==2.5.3",
+    "scipy==1.18.1",
+    "pillow==12.3.0",
+    "fastapi==0.156.5",
+    "uvicorn==0.54.0",
+    "python-multipart==0.0.32",
+    "pydantic==2.13.5",
+    "pydantic-settings==2.16.1",
+    "sqlalchemy==2.1.5",
+    "pyyaml==6.0.3",
+]
+
+[project.optional-dependencies]
+postgres = ["psycopg[binary]==3.3.6"]
+dev = [
+    "pytest==9.1.1",
+    "httpx==0.28.1",
+    "ruff==0.17.1",
+    "mypy==2.4.0",
+    "types-PyYAML",
+]
+
+[project.scripts]
+ctpipeline-worker = "ctpipeline.jobs.worker:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+ctpipeline = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "N"]
+ignore = ["S101"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S"]
+
+[tool.mypy]
+python_version = "3.12"
+packages = ["ctpipeline"]
+mypy_path = "src"
+ignore_missing_imports = true
+warn_unused_ignores = true
+check_untyped_defs = true

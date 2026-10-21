@@ -1,0 +1,74 @@
+# Single-server stack: API + CPU worker + PostgreSQL.
+# Object storage is a shared volume (an S3-compatible store is a later step).
+#
+# Settings come from a .env file next to this file (see .env.example):
+#   CTP_PORT         host port for the API (default 8000)
+#   CTP_BIND         host address to bind (default 0.0.0.0; 127.0.0.1 behind a reverse proxy)
+#   CTP_DB_PASSWORD  PostgreSQL password (change it!)
+#   CTP_API_KEY      if set, /v1 endpoints require the X-API-Key header
+#   PIP_INDEX_URL    PyPI mirror used while building the image (optional)
+#
+# The fixed project name keeps containers, network and volumes prefixed with
+# "ctpipeline" so they never collide with other Compose stacks on the host.
+# PostgreSQL is not published on the host, so it does not conflict with any
+# database already running there.
+name: ctpipeline
+
+services:
+  postgres:
+    image: postgres:16.6-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ctp
+      POSTGRES_PASSWORD: ${CTP_DB_PASSWORD:-ctp-dev-only}
+      POSTGRES_DB: ctpipeline
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ctp -d ctpipeline"]
+      interval: 5s
+      retries: 10
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: .
+      # Host networking during the build uses the server's own DNS; this avoids
+      # "Temporary failure in name resolution" when Docker's DNS is misconfigured.
+      network: host
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
+        PIP_TRUSTED_HOST: ${PIP_TRUSTED_HOST:-}
+    image: ctpipeline:local
+    pull_policy: build
+    restart: unless-stopped
+    environment: &env
+      CTP_DB_HOST: postgres
+      CTP_DB_PASSWORD: ${CTP_DB_PASSWORD:-ctp-dev-only}
+      CTP_STORAGE_ROOT: /data/objects
+      CTP_API_KEY: ${CTP_API_KEY:-}
+    ports:
+      - "${CTP_BIND:-0.0.0.0}:${CTP_PORT:-8000}:8000"
+    volumes:
+      - objects:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  worker:
+    # Reuses the image built for "api"; never try to pull it from Docker Hub.
+    image: ctpipeline:local
+    pull_policy: never
+    restart: unless-stopped
+    command: ["ctpipeline-worker"]
+    environment: *env
+    volumes:
+      - objects:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      api:
+        condition: service_started
+
+volumes:
+  pgdata:
+  objects:

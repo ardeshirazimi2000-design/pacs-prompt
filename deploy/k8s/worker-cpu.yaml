@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ctpipeline-worker-cpu
+  labels: {app: ctpipeline, component: worker-cpu}
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {app: ctpipeline, component: worker-cpu}
+  template:
+    metadata:
+      labels: {app: ctpipeline, component: worker-cpu}
+    spec:
+      # SIGTERM lets the worker finish its current job; give it time to do so.
+      terminationGracePeriodSeconds: 600
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: worker
+          image: ctpipeline
+          command: ["ctpipeline-worker"]
+          env:
+            - {name: CTP_DEVICE, value: cpu}
+          envFrom:
+            - configMapRef: {name: ctpipeline-config}
+            - secretRef: {name: ctpipeline-secrets}
+          resources:
+            requests: {cpu: "1", memory: 4Gi}
+            limits: {cpu: "4", memory: 16Gi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+          volumeMounts:
+            - {name: objects, mountPath: /data}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: objects
+          persistentVolumeClaim: {claimName: ctpipeline-objects}
+        - name: tmp
+          emptyDir: {}
