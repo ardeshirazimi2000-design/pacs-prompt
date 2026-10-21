@@ -65,6 +65,24 @@ docker compose up --build      # API + CPU worker + PostgreSQL
 
 تنظیمات از متغیرهای محیطی با پیشوند `CTP_` خوانده می‌شوند؛ نمونه در [`.env.example`](.env.example).
 
+## نصب روی سرور با Docker (مثلاً پورت ۴۰۰۰)
+
+```bash
+git clone https://github.com/ardeshirazimi2000-design/pacs-prompt.git ctpipeline
+cd ctpipeline
+cp .env.example .env
+# در .env:  CTP_PORT=4000   و یک CTP_DB_PASSWORD قوی (فقط حروف و اعداد)   و در صورت نیاز CTP_API_KEY
+docker compose up -d --build
+curl http://localhost:4000/healthz      # {"status":"ok"}
+```
+
+- نام پروژهٔ compose ثابت (`ctpipeline`) است، پس کانتینرها، شبکه و volumeها با سامانه‌های دیگر روی همان سرور تداخل ندارند.
+- PostgreSQL روی هیچ پورتی از سرور باز نمی‌شود؛ فقط پورت `CTP_PORT` منتشر می‌شود.
+- قبل از اجرا مطمئن شوید پورت آزاد است: `sudo ss -ltnp | grep :4000`.
+- اگر nginx یا reverse proxy دیگری دارید، `CTP_BIND=127.0.0.1` بگذارید و proxy را به `127.0.0.1:4000` بفرستید (برای HTTPS).
+- مستندات تعاملی API: `http://<server>:4000/docs`.
+- به‌روزرسانی: `git pull && docker compose up -d --build`؛ لاگ‌ها: `docker compose logs -f api worker`.
+
 ## API
 
 | متد | مسیر | توضیح |

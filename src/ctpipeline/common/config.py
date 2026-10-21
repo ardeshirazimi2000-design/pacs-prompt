@@ -3,6 +3,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -35,6 +36,11 @@ class Settings(BaseSettings):
     # Provenance
     code_revision: str = "unknown"
     container_digest: str = "unknown"
+
+    @field_validator("api_key", mode="before")
+    @classmethod
+    def _empty_api_key_disables_auth(cls, value: object) -> object:
+        return None if value == "" else value
 
 
 @lru_cache

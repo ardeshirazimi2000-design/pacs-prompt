@@ -43,3 +43,10 @@ def test_running_stages_can_requeue_for_retry() -> None:
     for st in (S.PREPROCESSING, S.INFERENCE, S.POSTPROCESSING, S.EXPORTING):
         check_transition(st, S.QUEUED)
         check_transition(st, S.CANCELLED)
+
+
+def test_empty_api_key_disables_auth() -> None:
+    from ctpipeline.common.config import Settings
+
+    assert Settings(api_key="").api_key is None
+    assert Settings(api_key="k").api_key == "k"

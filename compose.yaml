@@ -1,11 +1,25 @@
-# Local development stack: API + CPU worker + PostgreSQL.
+# Single-server stack: API + CPU worker + PostgreSQL.
 # Object storage is a shared volume (an S3-compatible store is a later step).
+#
+# Settings come from a .env file next to this file (see .env.example):
+#   CTP_PORT         host port for the API (default 8000)
+#   CTP_BIND         host address to bind (default 0.0.0.0; 127.0.0.1 behind a reverse proxy)
+#   CTP_DB_PASSWORD  PostgreSQL password (change it!)
+#   CTP_API_KEY      if set, /v1 endpoints require the X-API-Key header
+#
+# The fixed project name keeps containers, network and volumes prefixed with
+# "ctpipeline" so they never collide with other Compose stacks on the host.
+# PostgreSQL is not published on the host, so it does not conflict with any
+# database already running there.
+name: ctpipeline
+
 services:
   postgres:
     image: postgres:16.6-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ctp
-      POSTGRES_PASSWORD: ctp-dev-only
+      POSTGRES_PASSWORD: ${CTP_DB_PASSWORD:-ctp-dev-only}
       POSTGRES_DB: ctpipeline
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ctp -d ctpipeline"]
@@ -16,11 +30,14 @@ services:
 
   api:
     build: .
+    image: ctpipeline:local
+    restart: unless-stopped
     environment: &env
-      CTP_DATABASE_URL: postgresql+psycopg://ctp:ctp-dev-only@postgres:5432/ctpipeline
+      CTP_DATABASE_URL: postgresql+psycopg://ctp:${CTP_DB_PASSWORD:-ctp-dev-only}@postgres:5432/ctpipeline
       CTP_STORAGE_ROOT: /data/objects
+      CTP_API_KEY: ${CTP_API_KEY:-}
     ports:
-      - "8000:8000"
+      - "${CTP_BIND:-0.0.0.0}:${CTP_PORT:-8000}:8000"
     volumes:
       - objects:/data
     depends_on:
@@ -28,7 +45,8 @@ services:
         condition: service_healthy
 
   worker:
-    build: .
+    image: ctpipeline:local
+    restart: unless-stopped
     command: ["ctpipeline-worker"]
     environment: *env
     volumes:
@@ -36,6 +54,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      api:
+        condition: service_started
 
 volumes:
   pgdata:
